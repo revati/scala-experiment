@@ -1,52 +1,32 @@
 package blog
 
-import java.util.UUID
+import akka.actor.{Actor, Props}
+import akka.persistence.PersistentView
+import blog.Blog.{NewEntryCreated, CreateNewEntry}
+import blog.BlogList.LastEntries
+import domain.AggregateObject.{Event, UniqueId, Command}
+import domain._
 
-import akka.actor.{Actor, Props, ActorSystem}
-import akka.persistence.{PersistentView, PersistentActor}
-import blog.Blog.{NewEntryCreated, CreateNewEntry, Command, Event}
-import blog.BlogList.{LastEntries}
-
-
-object Blog {
-  def props: Props = Props[Blog]
-
-  val system = ActorSystem("blog")
-  val domain = system.actorOf(props)
-  val stream = system.actorOf(Props[BlogStream])
-
-  trait Command {val id: String}
-  trait UniqueId {lazy val id = UUID.randomUUID().toString}
-  trait Event {val id: String}
+object Blog extends domain.AggregateRootObject {
+  def name = "blog"
+  def rootProps: Props = Props[Blog]
 
   case class CreateNewEntry() extends Command with UniqueId
   case class NewEntryCreated(id: String) extends Event
+
 }
 
-class BlogStream extends PersistentActor {
-  override def persistenceId: String = "blog"
-
-  override def receiveCommand: Receive = {
-    case event: Event => persist(event)(broadcast)
-    case command: Command => broadcast(command)
-  }
-
-  def broadcast(x: Any) = println(x.toString)
-
-  override def receiveRecover: Receive = {
-    case _ => ()
-  }
+trait BlogAggregate extends Aggregate {
+  override def root = Blog
 }
 
-class Blog extends Actor {
+class Blog extends Actor with BlogAggregate {
   override def receive: Receive = {
     case command: CreateNewEntry => recordThat(NewEntryCreated(command.id))
   }
-
-  def recordThat(event: Event) = Blog.stream ! event
 }
 
-class BlogView extends PersistentView {
+class BlogView extends PersistentView with BlogAggregate {
   override def viewId: String = "blog-view"
   override def persistenceId: String = "blog"
 
@@ -59,7 +39,7 @@ object BlogList {
   case class LastEntries(limit: Int = 10)
 }
 
-class BlogList extends PersistentView {
+class BlogList extends PersistentView with BlogAggregate {
   protected case class Entry(id: String)
 
   protected var entries: List[Entry] = List()
@@ -73,7 +53,7 @@ class BlogList extends PersistentView {
   }
 }
 
-class BlogEntry(id: String) extends PersistentView {
+class BlogEntry(id: String) extends PersistentView with BlogAggregate {
   override def viewId: String = "blog-view"
   override def persistenceId: String = "blog"
 
