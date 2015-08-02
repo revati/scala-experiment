@@ -31,7 +31,7 @@ abstract class AggregateRootObject {
   protected val domain = actorOf(rootProps)
   protected val stream = actorOf(streamProps)
 
-  def !(message: Message) = ()//domain ! message
+  def !(message: Message) = domain ! message
   def recordThat(message: Event) = stream ! message
   def actorOf(props: Props) = system actorOf props
 }
@@ -42,10 +42,12 @@ class Stream(name: String) extends PersistentActor {
   override def persistenceId: String = name
 
   override def receiveCommand: Receive = {
-    case event: Event => persist(event)_
+    case event: Event => persist(event)(updateState)
   }
 
   override def receiveRecover: Receive = {
     case _ => ()
   }
+
+  def updateState(event: Event) = println("updateState::" + event.toString)
 }
