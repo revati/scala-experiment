@@ -8,7 +8,7 @@ import domain.AggregateObject.{Event, UniqueId, Command}
 import domain._
 
 object Blog extends domain.AggregateRootObject {
-  def name = "blog"
+  def name = "blog2"
   def rootProps: Props = Props[Blog]
 
   case class CreateNewEntry() extends Command with UniqueId
@@ -27,8 +27,8 @@ class Blog extends Actor with BlogAggregate {
 }
 
 class BlogView extends PersistentView with BlogAggregate {
-  override def viewId: String = "blog-view"
-  override def persistenceId: String = "blog"
+  override def viewId: String = "blog2-view"
+  override def persistenceId: String = "blog2"
 
   override def receive: Actor.Receive = {
     case x: Event => println( "view::" + x.toString)
@@ -44,8 +44,8 @@ class BlogList extends PersistentView with BlogAggregate {
 
   protected var entries: List[Entry] = List()
 
-  override def viewId: String = "blog-view"
-  override def persistenceId: String = "blog"
+  override def viewId: String = "blog2-view"
+  override def persistenceId: String = "blog2"
 
   override def receive: Actor.Receive = {
     case request: LastEntries => println(entries.toString)
@@ -54,8 +54,8 @@ class BlogList extends PersistentView with BlogAggregate {
 }
 
 class BlogEntry(id: String) extends PersistentView with BlogAggregate {
-  override def viewId: String = "blog-view"
-  override def persistenceId: String = "blog"
+  override def viewId: String = "blog2-view"
+  override def persistenceId: String = "blog2"
 
   override def receive: Actor.Receive = {
     case event: NewEntryCreated if event.id == id => println("entry::" + event.toString)
